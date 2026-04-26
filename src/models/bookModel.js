@@ -2,15 +2,32 @@ import { pool } from '../config/db.js';
 
 export const BookModel = {
   // Mengambil semua buku dengan nama penulis dan kategori (JOIN)
-  async getAll() {
-    const query = `
+  async getAll(searchTitle = '') {
+    let query = `
       SELECT b.*, a.name as author_name, c.name as category_name 
       FROM books b
       LEFT JOIN authors a ON b.author_id = a.id
       LEFT JOIN categories c ON b.category_id = c.id
     `;
-    const result = await pool.query(query);
+    let params = [];
+    if (searchTitle) {
+      query += 'WHERE b.title ILIKE $1 ';
+      params.push(`%${searchTitle}%`);
+    }
+    const result = await pool.query(query, params);
     return result.rows;
+  },
+
+  async getById(id) {
+    const query = `
+      SELECT b.*, a.name as author_name, c.name as category_name 
+      FROM books b
+      LEFT JOIN authors a ON b.author_id = a.id
+      LEFT JOIN categories c ON b.category_id = c.id
+      WHERE b.id = $1
+    `;
+    const result = await pool.query(query, [id]);
+    return result.rows[0];
   },
 
   async create(data) {
@@ -23,9 +40,20 @@ export const BookModel = {
     return result.rows[0];
   },
 
+  async update(id, data) {
+    const { isbn, title, author_id, category_id, total_copies, available_copies } = data;
+    const query = `
+      UPDATE books 
+      SET isbn = $1, title = $2, author_id = $3, category_id = $4, total_copies = $5, available_copies = $6 
+      WHERE id = $7 RETURNING *
+    `;
+    const result = await pool.query(query, [isbn, title, author_id, category_id, total_copies, available_copies, id]);
+    return result.rows[0];
+  },
+
   async delete(id) {
-    const query = 'DELETE FROM books WHERE id = $1';
-    await pool.query(query, [id]);
-    return { message: "Buku berhasil dihapus dari sistem." };
+    const query = 'DELETE FROM books WHERE id = $1 RETURNING *';
+    const result = await pool.query(query, [id]);
+    return result.rows[0];
   }
 };
