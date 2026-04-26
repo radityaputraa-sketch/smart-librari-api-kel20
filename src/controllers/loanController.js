@@ -22,5 +22,22 @@ export const LoanController = {
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
+  },
+
+  async returnLoan(req, res) {
+    const { loan_id, return_date } = req.body;
+    try {
+      if (!loan_id) {
+        return res.status(400).json({ error: "loan_id is required" });
+      }
+      const actualReturnDate = return_date || new Date().toISOString();
+      const updatedLoan = await LoanModel.returnLoan(loan_id, actualReturnDate);
+      res.json({
+        message: "Buku berhasil dikembalikan!",
+        data: updatedLoan
+      });
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
   }
 };
